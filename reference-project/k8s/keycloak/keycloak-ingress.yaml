@@ -1,0 +1,19 @@
+# a simple ingress for our service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8085
+      host: keycloak-demo-quarkus.localhost

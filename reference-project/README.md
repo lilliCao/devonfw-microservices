@@ -141,3 +141,87 @@ We can also package helm as artefact for the helm repository:
 helm package helm/
 Successfully packaged chart and saved it to: .../reference-project/demo-quarkus-1.0.0.tgz
 ```
+
+## Istio
+
+Follow the instruction [here](https://istio.io/latest/docs/setup/getting-started/) 
+to download and setup istio to the running cluster, as well as clean up resources. Below is just an example
+
+Download and install istio 
+```
+curl -L https://istio.io/downloadIstio | sh -
+export PATH=$PWD/bin:$PATH
+istioctl install --set profile=default -y
+kubectl label namespace default istio-injection=enabled
+kubectl get nodes,svc,deployments,pods,ingress --all-namespaces
+```
+
+Deploy gateway and virtual service
+```
+kubectl apply -f k8s/istio/gateway.yaml
+```
+
+Determine the external host and port and test the app.
+
+As an example the virtual service is configured to only handle urls which match `/animals` or `/q/health/ready`. As that a request to `/q/health/live` will return 404
+
+`curl` with `-HHost:demo-quarkus.localhost` if host is specified (hostname not work with istio?)
+```
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')
+echo http://$INGRESS_HOST:$INGRESS_PORT
+curl -s http://$INGRESS_HOST:$INGRESS_PORT/animals | python3 -m json.tool
+curl --header "Content-Type: application/json" --request POST \
+--data '{"name":"dog","basicInfo":"home pet", "numberOfLegs":4}' \
+http://$INGRESS_HOST:$INGRESS_PORT/animals
+curl -s -I http://$INGRESS_HOST:$INGRESS_PORT/q/health/live
+```
+
+Deploy monitoring addon
+```
+kubectl apply -f k8s/istio/addons/
+istioctl dashboard prometheus
+istioctl dashboard grafana
+istioctl dashboard kiali
+for i in $(seq 1 1000); do curl -s -o /dev/null "http://$INGRESS_HOST:$INGRESS_PORT/animals"; done
+```
+
+Clean up
+```
+istioctl manifest generate --set profile=default | kubectl delete --ignore-not-found=true -f -
+kubectl delete namespace istio-system
+kubectl label namespace default istio-injection-
+```
+
+## Keycloak
+Deploy keycloak, service and ingress. We will not inject keycloak so that we can access it via its defined host.
+```
+kubectl apply -f <(istioctl experimental kube-uninject -f k8s/keycloak/keycloak.yaml)
+kubectl apply -f <(istioctl experimental kube-uninject -f k8s/keycloak/keycloak-ingress.yaml)
+```
+Go to http://keycloak-demo-quarkus.localhost and log in with `user=password=admin`
+
+Configure keycloak by importing the k8s/keycloak/realm-export.json
+
+    * realm demo-quarkus
+    * client demo-quarkus-cli with the url of demo-quarkus app 
+    * 2 user demo and demo-2 (password=user)
+
+Deploy authorization policy and test
+
+    * For testing purpose: 
+
+        * requests to /animals are only valid if token has the correct issuer and sub (user-id)
+        * requests to /q/health/ready do not need jwt
+```
+kubectl apply -f k8s/istio/authorization-policy.yaml
+curl http://$INGRESS_HOST:$INGRESS_PORT/animals -s --header "Authorization: Bearer $TOKEN" | python3 -m json.tool
+```
+
+
+
+
+
+
+
+
