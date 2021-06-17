@@ -2,32 +2,27 @@ apiVersion: security.istio.io/v1beta1
 kind: RequestAuthentication
 metadata:
   name: "jwt-keycloak"
-  namespace: istio-system
 spec:
   selector:
     matchLabels:
-      istio: ingressgateway
+      app: demo-quarkus
   jwtRules:
     - issuer: "http://keycloak-demo-quarkus.localhost/auth/realms/demo-quarkus"
-      # TODO internal ip of keycloak-service
-      # kubectl exec -it pod/istio-ingressgateway-8579cc48f8-pskgg -n istio-system -- curl http://keycloak-demo-quarkus.localhost/auth/realms/demo-quarkus
-      jwksUri: "http://10.43.112.170:8085/auth/realms/demo-quarkus/protocol/openid-connect/certs"
+      jwksUri: "http://keycloak.default:8080/auth/realms/demo-quarkus/protocol/openid-connect/certs"
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: jwt-require
-  namespace: istio-system
 spec:
   selector:
     matchLabels:
-      istio: ingressgateway
+      app: demo-quarkus
   action: ALLOW
   rules:
   - from:
     - source:
-        # TODO issuer/sub (sub is userid of user demo)
-        requestPrincipals: ["http://keycloak-demo-quarkus.localhost/auth/realms/demo-quarkus/b679ffd9-a9e0-47cf-a73e-62ba90c74f83"]
+        requestPrincipals: ["http://keycloak-demo-quarkus.localhost/auth/realms/demo-quarkus/7745de1c-a85e-4bfe-97fe-42dc2b0b3f65"]
     to:
       - operation:
           paths: [ "/animals"]

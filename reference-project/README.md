@@ -156,16 +156,19 @@ kubectl label namespace default istio-injection=enabled
 kubectl get nodes,svc,deployments,pods,ingress --all-namespaces
 ```
 
-Deploy gateway and virtual service
+Deploy gateway and virtual service. Delete svc `traefik` so that istio can configure external IP properly
 ```
+kubectl delete svc traefik -n istio-system
 kubectl apply -f k8s/istio/gateway.yaml
 ```
 
-Determine the external host and port and test the app.
+Test the app.
 
 As an example the virtual service is configured to only handle urls which match `/animals` or `/q/health/ready`. As that a request to `/q/health/live` will return 404
 
-`curl` with `-HHost:demo-quarkus.localhost` if host is specified (hostname not work with istio?)
+`curl` with `-HHost:demo-quarkus.localhost` if host is specified
+
+Determine host and port if not existed.
 ```
 export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
 export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')
@@ -194,10 +197,11 @@ kubectl label namespace default istio-injection-
 ```
 
 ## Keycloak
-Deploy keycloak, service and ingress. We will not inject keycloak so that we can access it via its defined host.
+Deploy keycloak, service and ingress. 
 ```
-kubectl apply -f <(istioctl experimental kube-uninject -f k8s/keycloak/keycloak.yaml)
-kubectl apply -f <(istioctl experimental kube-uninject -f k8s/keycloak/keycloak-ingress.yaml)
+kubectl apply -f  k8s/keycloak/keycloak.yaml
+kubectl apply -f  k8s/keycloak/keycloak-ingress.yaml
+curl http://GATEWAY-IP:GATEWAY-PORT/auth/ -HHost:keycloak-demo-quarkus.localhost
 ```
 Go to http://keycloak-demo-quarkus.localhost and log in with `user=password=admin`
 
@@ -215,7 +219,7 @@ Deploy authorization policy and test
         * requests to /q/health/ready do not need jwt
 ```
 kubectl apply -f k8s/istio/authorization-policy.yaml
-curl http://$INGRESS_HOST:$INGRESS_PORT/animals -s --header "Authorization: Bearer $TOKEN" | python3 -m json.tool
+curl http://GATEWAY-IP:GATEWAY-PORT/animals -s --header "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
 

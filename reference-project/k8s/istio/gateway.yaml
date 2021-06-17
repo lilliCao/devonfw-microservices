@@ -11,8 +11,8 @@ spec:
         name: http
         protocol: HTTP
       hosts:
-        - "*"
-        #- demo-quarkus.localhost
+        #- "*"
+        - demo-quarkus.localhost
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -20,8 +20,8 @@ metadata:
   name: demo-quarkus-rules
 spec:
   hosts:
-    - "*"
-    #- demo-quarkus.localhost
+    #- "*"
+    - demo-quarkus.localhost
   gateways:
     - demo-quarkus-gateway
   http:
