@@ -209,13 +209,20 @@ Configure keycloak by importing the k8s/keycloak/realm-export.json
 
     * realm demo-quarkus
     * client demo-quarkus-cli with the url of demo-quarkus app 
-    * 2 user demo and demo-2 (password=user)
+
+As users can not be imported per ui. Please create 3 users for testing
+
+    * 2 roles: user and admin
+    * username = u1, password = u1, role_mapping = admin
+    * username = u2, password = u2, role_mapping = user
+    * username = u3, password = u3
 
 Deploy authorization policy and test
 
-    * For testing purpose: 
+    For testing purpose:
 
-        * requests to /animals are only valid if token has the correct issuer and sub (user-id)
+        * [GET] requests to /animals, /animal/{id}, /animal/{id}/facts are only valid if they come from users with role `user`
+        * [POST, DELETE] requests to /animals, /animal/{id} are only valid if they come from users with role `admin`
         * requests to /q/health/ready do not need jwt
 ```
 kubectl apply -f k8s/istio/authorization-policy.yaml

@@ -33,10 +33,6 @@ spec:
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:13.0.1
-        volumes:
-          - ./export:/opt/jboss/keycloak/export
-        command:
-            - "-Dkeycloak.migration.action=export -Dkeycloak.migration.provider=singleFile -Dkeycloak.migration.file=/export/kcdump.json"
         env:
         - name: KEYCLOAK_USER
           value: "admin"
