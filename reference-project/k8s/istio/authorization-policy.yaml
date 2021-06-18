@@ -20,13 +20,23 @@ spec:
       app: demo-quarkus
   action: ALLOW
   rules:
-  - from:
-    - source:
-        requestPrincipals: ["http://keycloak-demo-quarkus.localhost/auth/realms/demo-quarkus/7745de1c-a85e-4bfe-97fe-42dc2b0b3f65"]
-    to:
-      - operation:
-          paths: [ "/animals"]
+  # get request
   - to:
-    # The 2nd rule doesn't have `from` allowing any access (without JWT)
+    - operation:
+        methods: ["GET"]
+        paths: [ "/animals", "/animals/*"]
+    when:
+      - key: request.auth.claims[realm_access][roles]
+        values: [ "user", "admin" ]
+  # post and delete request
+  - to:
+    - operation:
+        methods: [ "POST", "DELETE" ]
+        paths: [ "/animals", "/animals/*" ]
+    when:
+      - key: request.auth.claims[realm_access][roles]
+        values: [ "admin" ]
+  # This rule doesn't have `from` or `when` allowing any access (without JWT)
+  - to:
     - operation:
         paths: [ "/q/health/ready"]
